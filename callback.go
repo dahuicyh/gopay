@@ -9,9 +9,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/milkbobo/gopay/client"
-	"github.com/milkbobo/gopay/common"
-	"github.com/milkbobo/gopay/util"
+	"github.com/gotomicro/gopay/client"
+	"github.com/gotomicro/gopay/common"
+	"github.com/gotomicro/gopay/util"
 	"encoding/json"
 )
 
@@ -108,6 +108,7 @@ func WeChatCallback(w http.ResponseWriter, r *http.Request) (*common.WeChatPayRe
 		return &reXML, errors.New(returnCode + ":" + returnMsg)
 	}
 	err = xml.Unmarshal(body, &reXML)
+	fmt.Printf("%v", reXML)
 	if err != nil {
 		returnCode = "FAIL"
 		returnMsg = "参数错误"
@@ -141,6 +142,67 @@ func WeChatCallback(w http.ResponseWriter, r *http.Request) (*common.WeChatPayRe
 
 	returnCode = "SUCCESS"
 	return &reXML, nil
+}
+
+func WeChatRefundCallback(w http.ResponseWriter, r *http.Request, key string) (*common.WechatRefundCallbackResp, error) {
+	var returnCode = "FAIL"
+	var returnMsg = ""
+	defer func() {
+		formatStr := `<xml><return_code><![CDATA[%s]]></return_code>
+                  <return_msg>![CDATA[%s]]</return_msg></xml>`
+		returnBody := fmt.Sprintf(formatStr, returnCode, returnMsg)
+		w.Write([]byte(returnBody))
+	}()
+
+	body, err := ioutil.ReadAll(r.Body)
+	//util.XmlToMap()
+	if err != nil {
+		returnCode = "FAIL"
+		returnMsg = "Bodyerror"
+		return nil, err
+	}
+	var reXML common.WechatRefundResultOriginalResp
+	err = xml.Unmarshal(body, &reXML)
+	if err != nil {
+		return nil, err
+	}
+	bodyDec, err := client.WechatDecode(reXML.ReqInfo, key)
+
+	bodyDec = []byte(strings.ReplaceAll(string(bodyDec), "root", "xml"))
+
+	if err != nil {
+		return nil, err
+	}
+
+	res := &common.WechatRefundCallbackResp{
+		WechatBaseResult: reXML.WechatBaseResult,
+	}
+
+	xml.Unmarshal(bodyDec, res)
+
+	fmt.Printf("%v", res)
+	if err != nil {
+		returnCode = "FAIL"
+		returnMsg = "参数错误"
+		return res, errors.New(returnCode + ":" + returnMsg)
+	}
+
+	if reXML.ReturnCode != "SUCCESS" {
+		returnCode = "FAIL"
+		return res, errors.New(reXML.ReturnCode)
+	}
+	m := util.XmlToMap(body)
+
+	var signData []string
+	for k, v := range m {
+		if k == "sign" {
+			continue
+		}
+		signData = append(signData, fmt.Sprintf("%v=%v", k, v))
+	}
+
+	returnCode = "SUCCESS"
+	return res, nil
 }
 
 func WeChatWebCallback(w http.ResponseWriter, r *http.Request) (*common.WeChatPayResult, error) {

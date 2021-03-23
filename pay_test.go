@@ -5,9 +5,9 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"github.com/milkbobo/gopay/client"
-	"github.com/milkbobo/gopay/common"
-	"github.com/milkbobo/gopay/constant"
+	"github.com/gotomicro/gopay/client"
+	"github.com/gotomicro/gopay/common"
+	"github.com/gotomicro/gopay/constant"
 	"net/http"
 	"testing"
 )
@@ -66,7 +66,7 @@ xxxxxxxx
 		AppID:      "xxxxxxxxxxxx",
 		PrivateKey: privateKey.(*rsa.PrivateKey),
 		PublicKey:  publicKey.(*rsa.PublicKey),
-		PayURL:     "https://mapi.alipay.com/gateway.do",
+		CallbackURL:     "https://mapi.alipay.com/gateway.do",
 	})
 }
 

@@ -2,17 +2,47 @@ package client
 
 import (
 	"bytes"
+	"crypto/aes"
 	"crypto/md5"
+	"encoding/base64"
 	"encoding/json"
 	"encoding/xml"
 	"errors"
 	"fmt"
-	"github.com/milkbobo/gopay/common"
-	"github.com/milkbobo/gopay/util"
+	"github.com/gotomicro/gopay/common"
+	"github.com/gotomicro/gopay/util"
+	"github.com/shopspring/decimal"
 	"sort"
 	"strings"
-	"github.com/shopspring/decimal"
 )
+
+func WechatDecode(data string, key string) ([]byte, error) {
+	encrypted, err := base64.StdEncoding.DecodeString(data)
+	if err != nil {
+		return nil, err
+	}
+
+	h := md5.Sum([]byte(key))
+	md5str := fmt.Sprintf("%x", h)
+	res := AesDecryptECB(encrypted, []byte(md5str))
+	return res, nil
+}
+
+func AesDecryptECB(encrypted []byte, key []byte) (decrypted []byte) {
+	cipher, _ := aes.NewCipher(key)
+	decrypted = make([]byte, len(encrypted))
+	//
+	for bs, be := 0, cipher.BlockSize(); bs < len(encrypted); bs, be = bs+cipher.BlockSize(), be+cipher.BlockSize() {
+		cipher.Decrypt(decrypted[bs:be], encrypted[bs:be])
+	}
+
+	trim := 0
+	if len(decrypted) > 0 {
+		trim = len(decrypted) - int(decrypted[len(decrypted)-1])
+	}
+
+	return decrypted[:trim]
+}
 
 // 微信企业付款到零钱
 func WachatCompanyChange(mchAppid, mchid, key string, conn *HTTPSClient, charge *common.Charge) (map[string]string, error) {
@@ -127,15 +157,15 @@ func TruncatedText(data string, length int) string {
 func FilterTheSpecialSymbol(data string) string {
 	// 定义转换规则
 	specialSymbol := func(r rune) rune {
-		if r == '`' || r == '[' || r == '~' || r == '!' || r == '@' || r == '#' || r == '$' ||
-			r == '^' || r == '&' || r == '*' || r == '~' || r == '(' || r == ')' || r == '=' ||
-			r == '~' || r == '|' || r == '{' || r == '}' || r == '~' || r == ':' || r == ';' ||
+		if r == '`' || r == '!' || r == '$' ||
+			r == '^' || r == '(' || r == ')' || r == '=' ||
+			 r == ':' || r == ';' ||
 			r == '\'' || r == ',' || r == '\\' || r == '[' || r == ']' || r == '.' || r == '<' ||
 			r == '>' || r == '/' || r == '?' || r == '~' || r == '！' || r == '@' || r == '#' ||
 			r == '￥' || r == '…' || r == '&' || r == '*' || r == '（' || r == '）' || r == '—' ||
 			r == '|' || r == '{' || r == '}' || r == '【' || r == '】' || r == '‘' || r == '；' ||
-			r == '：' || r == '”' || r == '“' || r == '\'' || r == '"' || r == '。' || r == '，' ||
-			r == '、' || r == '？' || r == '%' || r == '+' || r == '_' || r == ']' || r == '"' || r == '&' {
+			r == '：' || r == '”' || r == '“'|| r == '"' || r == '。' || r == '，' ||
+			r == '、' || r == '？' || r == '%' || r == '+' || r == '_'{
 			return ' '
 		}
 		return r

@@ -8,7 +8,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"github.com/milkbobo/gopay/common"
+	"github.com/gotomicro/gopay/common"
 	"net/url"
 	"sort"
 	"strings"

@@ -49,6 +49,16 @@ type WeChatPayResult struct {
 	WechatBaseResult
 	WechatReturnData
 	WechatResultData
+	WechatRefundResult
+	OutTradeNO     string `xml:"out_trade_no,omitempty" json:"out_trade_no,omitempty"`
+}
+
+type WechatRefundResult struct {
+	RefundStatus string `xml:"refund_status" json:"refund_status"`
+	SuccessTime  string `xml:"success_time" json:"success_time"`
+	RefundId     string `xml:"refund_id" json:"refund_id"` // wechat refund id
+	OutRefundNo  string `xml:"out_refund_no"json:"out_refund_no"`
+	OutTradeNO     string `xml:"out_trade_no,omitempty" json:"out_trade_no,omitempty"`
 }
 
 type WeChatQueryResult struct {
@@ -58,4 +68,19 @@ type WeChatQueryResult struct {
 	WechatResultData
 	TradeState     string `xml:"trade_state" json:"trade_state,omitempty"`
 	TradeStateDesc string `xml:"trade_state_desc" json:"trade_state_desc,omitempty"`
+
+	RefundId string `json:"refund_id"` // wechat refund id
+}
+
+type WechatRefundCallbackResp struct {
+	WechatBaseResult
+	WechatRefundResult
+}
+
+type WechatRefundResultOriginalResp struct {
+	WechatBaseResult
+	AppID    string `xml:"appid,omitempty" json:"appid,omitempty"`
+	MchID    string `xml:"mch_id,omitempty" json:"mch_id,omitempty"`
+	NonceStr string `xml:"nonce_str,omitempty" json:"nonce_str,omitempty"`
+	ReqInfo  string `xml:"req_info" json:"req_info"`
 }

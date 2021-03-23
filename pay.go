@@ -2,9 +2,9 @@ package gopay
 
 import (
 	"errors"
-	"github.com/milkbobo/gopay/client"
-	"github.com/milkbobo/gopay/common"
-	"github.com/milkbobo/gopay/constant"
+	"github.com/gotomicro/gopay/client"
+	"github.com/gotomicro/gopay/common"
+	"github.com/gotomicro/gopay/constant"
 )
 
 // 用户下单支付接口
@@ -39,6 +39,19 @@ func checkCharge(charge *common.Charge) error {
 		return errors.New("MoneyFee不能少于等于0")
 	}
 	return nil
+}
+
+func Refund(charge *common.RefundCharge) (map[string]string, error) {
+	if charge.RefundFee <= 0 || charge.TotalFee <= 0 {
+		return nil, errors.New("refund fee and total fee must > 0")
+	}
+
+	if charge.PayMethod != constant.WECHAT_MINI_PROGRAM {
+		return nil, errors.New("only support wechat mini program now")
+	}
+
+	//only support wechat mini program now
+	return client.DefaultWechatMiniProgramClient().Refund(charge)
 }
 
 // getPayType 得到需要支付的类型

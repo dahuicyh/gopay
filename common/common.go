@@ -58,3 +58,19 @@ type BaseResult struct {
 	UserInfo      string // 支付账号信息(有可能有，有可能没有)
 	ThirdDiscount int64  // 第三方优惠
 }
+
+type RefundCharge struct {
+	TransactionId string `json:"transactionId"`
+
+	// 相对于微信而言的外部交易号，即正向传递过去的
+	OutTradeNo string `json:"outTradeNo"`
+	// 内部退款单号，一般来说全额退款可以直接使用ordersn
+	RefundSn   string `json:"refundSn"`
+	TotalFee   int64  `json:"totalFee"`
+	RefundFee  int64  `json:"refundFee"`
+	RefundDesc string `json:"refundDesc"` // 退款描述
+	NotifyUrl  string `json:"notifyUrl"`  // 退款回调URL
+
+	PayMethod   int64   `json:"payMethod"` // 支付方式
+}
+

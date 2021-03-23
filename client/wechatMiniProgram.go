@@ -3,8 +3,8 @@ package client
 import (
 	"errors"
 	"fmt"
-	"github.com/milkbobo/gopay/common"
-	"github.com/milkbobo/gopay/util"
+	"github.com/gotomicro/gopay/common"
+	"github.com/gotomicro/gopay/util"
 	"time"
 )
 
@@ -91,4 +91,39 @@ func (this *WechatMiniProgramClient) PayToClient(charge *common.Charge) (map[str
 // QueryOrder 查询订单
 func (this *WechatMiniProgramClient) QueryOrder(tradeNum string) (common.WeChatQueryResult, error) {
 	return WachatQueryOrder(this.AppID, this.MchID, this.Key, tradeNum)
+}
+
+func (this *WechatMiniProgramClient) Refund(charge *common.RefundCharge) (map[string]string, error) {
+	var m = make(map[string]string)
+	m["appid"] = this.AppID
+	m["mch_id"] = this.MchID
+	m["nonce_str"] = util.RandomStr()
+	//m["body"] = TruncatedText(charge.Describe, 32)
+	m["out_trade_no"] = charge.OutTradeNo
+	m["transaction_id"] = charge.TransactionId
+	m["out_refund_no"] = charge.RefundSn
+	m["total_fee"] = fmt.Sprintf("%d", charge.TotalFee)
+	m["refund_fee"] = fmt.Sprintf("%d", charge.RefundFee)
+	m["notify_url"] = charge.NotifyUrl
+	m["sign_type"] = "MD5"
+
+	sign, err := WechatGenSign(this.Key, m)
+	if err != nil {
+		return nil, err
+	}
+	m["sign"] = sign
+
+	// 转出xml结构
+	xmlRe, err := PostWechat("https://api.mch.weixin.qq.com/secapi/pay/refund", m, this.httpsClient)
+	if err != nil {
+		return map[string]string{}, err
+	}
+
+	var c = make(map[string]string)
+	c["transaction_id"] = xmlRe.TransactionID
+	c["return_code"] = xmlRe.ReturnCode
+	c["return_msg"] = xmlRe.ReturnMsg
+	c["refund_id"] = xmlRe.RefundId
+
+	return c, nil
 }
