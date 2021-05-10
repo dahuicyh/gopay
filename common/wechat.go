@@ -57,8 +57,8 @@ type WechatRefundResult struct {
 	RefundStatus string `xml:"refund_status" json:"refund_status"`
 	SuccessTime  string `xml:"success_time" json:"success_time"`
 	RefundId     string `xml:"refund_id" json:"refund_id"` // wechat refund id
-	OutRefundNo  string `xml:"out_refund_no"json:"out_refund_no"`
-	OutTradeNO     string `xml:"out_trade_no,omitempty" json:"out_trade_no,omitempty"`
+	OutRefundNo  string `xml:"out_refund_no" json:"out_refund_no"`
+	//OutTradeNO     string `xml:"out_trade_no,omitempty" json:"out_trade_no,omitempty"`
 }
 
 type WeChatQueryResult struct {
