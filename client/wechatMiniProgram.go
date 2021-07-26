@@ -1,14 +1,21 @@
 package client
 
 import (
+	"bytes"
+	"encoding/json"
+	"encoding/xml"
 	"errors"
 	"fmt"
 	"github.com/gotomicro/gopay/common"
 	"github.com/gotomicro/gopay/util"
+	"io"
+	"net/http"
 	"time"
 )
 
 var defaultWechatMiniProgramClient *WechatMiniProgramClient
+
+const contentTypeJson = "application/json"
 
 func InitWxMiniProgramClient(c *WechatMiniProgramClient) {
 	if len(c.PrivateKey) != 0 && len(c.PublicKey) != 0 {
@@ -27,9 +34,131 @@ type WechatMiniProgramClient struct {
 	AppID       string       // 公众账号ID
 	MchID       string       // 商户号ID
 	Key         string       // 密钥
+
+	Secret      string       // APP Secret 用于获得 token
+	Spappid string // 第三方开票平台 ID
+	Phone string // 商家联系方式
+
 	PrivateKey  []byte       // 私钥文件内容
 	PublicKey   []byte       // 公钥文件内容
 	httpsClient *HTTPSClient // 双向证书链接
+}
+
+func GetInvoiceAuthUrl(orderId string,
+	amount int64, redirectUrl string) (*common.WechatMiniProgramGetInvoiceAuthUrlResp, error) {
+	client := DefaultWechatMiniProgramClient()
+	token, err := client.GetToken()
+	if err != nil {
+		return nil, fmt.Errorf("GetInvoiceAuthUrl get token got error %w", err)
+	}
+	if !token.Ok() {
+		return nil, errors.New(fmt.Sprintf("could not get token: %d, %s", token.ErrCode, token.ErrMsg))
+	}
+
+	ticket, err := client.GetTicket(token.AccessToken)
+	if err != nil {
+		return nil, fmt.Errorf("GetInvoiceAuthUrl get ticket got error %w", err)
+	}
+	return client.GetInvoiceAuthUrl(orderId, amount, redirectUrl, ticket.Ticket)
+}
+
+func (this *WechatMiniProgramClient) GetInvoiceAuthUrl(orderId string,
+	amount int64, redirectUrl string, ticket string) (*common.WechatMiniProgramGetInvoiceAuthUrlResp, error){
+	req := &common.WechatMiniProgramGetInvoiceAuthUrlReq{
+		Spappid: this.Spappid,
+		OrderId: orderId,
+		Money: amount,
+		Timestamp: time.Now().Unix(),
+		Source: "wxa",
+		RedirectUrl: redirectUrl,
+		Ticket: ticket,
+		Type: 1,
+	}
+
+	reqBody, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := http.Post("", contentTypeJson, bytes.NewReader(reqBody))
+	if err != nil {
+		return nil, err
+	}
+
+	respBody, err := io.ReadAll(resp.Body)
+
+	if err != nil {
+		return nil, err
+	}
+
+	authUrlResp := &common.WechatMiniProgramGetInvoiceAuthUrlResp{}
+	err = json.Unmarshal(respBody, authUrlResp)
+	return authUrlResp, err
+}
+
+func (this *WechatMiniProgramClient) GetToken() (*common.WechatMiniProgramToken, error) {
+	const tokenUrlPattern = "https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=%s&secret=%s"
+
+	url := fmt.Sprintf(tokenUrlPattern, this.AppID, this.Secret)
+
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := io.ReadAll(resp.Body)
+
+	if err != nil {
+		return nil, err
+	}
+
+	token := &common.WechatMiniProgramToken{}
+	err = json.Unmarshal(data, token)
+	return token, err
+}
+
+func (this *WechatMiniProgramClient) GetTicket(accessToken string) (*common.WechatMiniProgramTicket, error) {
+	const urlPattern = "https://api.weixin.qq.com/cgi-bin/ticket/getticket?access_token==%s&type=wx_card"
+	resp, err := http.Get(fmt.Sprintf(urlPattern, accessToken))
+	if err != nil {
+		return nil, err
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	ticket := &common.WechatMiniProgramTicket{}
+	err = json.Unmarshal(body, ticket)
+	return ticket, err
+}
+
+// SetContact 设置商家联系方式
+func (this *WechatMiniProgramClient) SetContact(accessToken string) (*common.BaseResp, error) {
+	const urlPattern = "https://api.weixin.qq.com/card/invoice/setbizattr?action=set_contact&access_token=%s"
+	contact := &common.SetContactReq{
+		Contact: common.Contact{
+			Phone: this.Phone,
+			// 十分钟超时
+			TimeOut: 600,
+		},
+	}
+
+	body, err := json.Marshal(contact)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := http.Post(fmt.Sprintf(urlPattern, accessToken),
+		contentTypeJson,
+		bytes.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+	baseResp := &common.BaseResp{}
+	respData, err  := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	err = json.Unmarshal(respData, baseResp)
+	return baseResp, err
 }
 
 // Pay 支付
@@ -126,4 +255,14 @@ func (this *WechatMiniProgramClient) Refund(charge *common.RefundCharge) (map[st
 	c["refund_id"] = xmlRe.RefundId
 
 	return c, nil
+}
+
+func (this *WechatMiniProgramClient) AuthInvoiceCallbackHandle(request *http.Request) (*common.WechatAuthInvoiceResult, error){
+	respBody, err := io.ReadAll(request.Body)
+	if err != nil {
+		return nil, err
+	}
+	result := &common.WechatAuthInvoiceResult{}
+	err = xml.Unmarshal(respBody, result)
+	return result, err
 }

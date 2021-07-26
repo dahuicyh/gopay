@@ -9,10 +9,10 @@ import (
 	"sort"
 	"strings"
 
+	"encoding/json"
 	"github.com/gotomicro/gopay/client"
 	"github.com/gotomicro/gopay/common"
 	"github.com/gotomicro/gopay/util"
-	"encoding/json"
 )
 
 func AliWebCallback(w http.ResponseWriter, r *http.Request) (*common.AliWebPayResult, error) {

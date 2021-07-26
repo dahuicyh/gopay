@@ -73,4 +73,3 @@ type RefundCharge struct {
 
 	PayMethod   int64   `json:"payMethod"` // 支付方式
 }
-

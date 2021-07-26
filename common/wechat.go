@@ -72,6 +72,16 @@ type WeChatQueryResult struct {
 	RefundId string `json:"refund_id"` // wechat refund id
 }
 
+type WechatAuthInvoiceResult struct {
+	ToUserName string `xml:"ToUserName"`
+	FromUserName string `xml:"FromUserName"`
+	CreateTime int `xml:"CreateTime"`
+	MsgType string `xml:"MsgType"`
+	Event string `xml:"event"`
+	SuccOrderId string `xml:"SuccOrderId"`
+	FailOrderId string `xml:"FailOrderId"`
+}
+
 type WechatRefundCallbackResp struct {
 	WechatBaseResult
 	WechatRefundResult
@@ -83,4 +93,54 @@ type WechatRefundResultOriginalResp struct {
 	MchID    string `xml:"mch_id,omitempty" json:"mch_id,omitempty"`
 	NonceStr string `xml:"nonce_str,omitempty" json:"nonce_str,omitempty"`
 	ReqInfo  string `xml:"req_info" json:"req_info"`
+}
+
+
+type WechatMiniProgramGetInvoiceAuthUrlReq struct {
+	Spappid string `json:"s_pappid"`
+	OrderId string `json:"order_id"`
+	Money int64 `json:"money"`
+	Timestamp int64 `json:"timestamp"`
+	Source string `json:"source"`
+	RedirectUrl string `json:"redirect_url"`
+	Ticket string `json:"ticket"`
+	Type int `json:"type"`
+}
+
+type WechatMiniProgramGetInvoiceAuthUrlResp struct {
+	BaseResp
+	AuthUrl string `json:"auth_url"`
+	AppId string `json:"appid"`
+}
+
+type WechatMiniProgramToken struct {
+	BaseResp
+	AccessToken string `json:"access_token"`
+	// 单位秒
+	ExpiresIn int `json:"expires_in"`
+}
+
+type WechatMiniProgramTicket struct {
+	BaseResp
+	Ticket string `json:"ticket"`
+	ExpiresIn int `json:"expires_in"`
+}
+
+type Contact struct {
+	Phone string `json:"phone"`
+	TimeOut int `json:"time_out"`
+}
+
+type SetContactReq struct {
+	Contact Contact `json:"contact"`
+}
+
+type BaseResp struct {
+	// 错误信息
+	ErrCode int `json:"errcode"`
+	ErrMsg string `json:"errmsg"`
+}
+
+func (b *BaseResp) Ok() bool {
+	return b.ErrCode == 0
 }
